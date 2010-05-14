@@ -12,4 +12,4 @@ Contributions by
     * Michael Greene <http://michaelgreene.org/>
     * Stephan Jaekel <http://www.sjaekel.com/>
     * James O'Donnell <http://squarefactor.com/words/>
-    
+    * Jonathan Prior <http://jonathanprior.name/>
