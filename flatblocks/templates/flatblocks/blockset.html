@@ -1,0 +1,9 @@
+<div class="blockset blockset-{{ blockset.slug }}">
+{% if blockset.header %}
+<h1 class="title">{{ blockset.header }}</h1>
+{% endif %}
+
+{% autoescape off %}
+{{ blockset_content }}
+{% endautoescape %}
+</div>

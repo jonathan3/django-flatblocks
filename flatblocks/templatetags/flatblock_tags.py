@@ -46,11 +46,64 @@ from django.core.cache import cache
 
 from flatblocks.settings import CACHE_PREFIX
 
-
 register = template.Library()
 
 FlatBlock = models.get_model('flatblocks', 'flatblock')
+BlockSet = models.get_model('flatblocks', 'blocksetitem')
+BlockSetMeta = models.get_model('flatblocks', 'blockset')
 
+class BlockSetNode(template.Node):
+    """
+    The Blockset template tag lets you insert sets of flatblocks into a page
+    easily.
+    
+    The syntax is:
+        {% blockset [slug] %}
+    
+    The slug should be be in quotes, otherwise it will be treated as a variable.
+    """
+    
+    def __init__(self, *args, **kwargs):
+        self.slug = kwargs.pop("slug", None)
+
+    def render(self, context):
+        # Check if the slug has quotes around it or not
+        quotes = ('"', "'")
+        if self.slug.startswith(quotes) and self.slug.endswith(quotes):
+            # Just strip the quotes
+            slug = self.slug.strip(""""'""")
+        else:
+            # Treat it as a variable
+            slug = template.Variable(self.slug).resolve(context)
+        
+        blockdata = BlockSetMeta.objects.filter(slug=slug)[0]
+        
+        # TODO: Add caching
+        blocks = BlockSet.objects.filter(blockset__slug=slug).order_by('position')
+        
+        # Render the blockset
+        rendered_blockset = []
+        for block in blocks:
+            rendered_blockset.append(
+                FlatBlockNode(block.flatblock.slug, False).render(context)
+            )
+        
+        blockset_content = "\n\n".join(rendered_blockset)
+        
+        t = template.loader.get_template('flatblocks/blockset.html')
+        
+        return t.render(template.Context({'blockset': blockdata, 'blockset_content': blockset_content}, autoescape=context.autoescape))
+
+@register.tag
+def blockset(parser, token):
+    arguments = token.contents.split()
+    
+    if len(arguments) != 2:
+        raise TemplateSyntaxError, "blockset requires exactly one argument"
+    
+    slug = arguments[1]
+    return BlockSetNode(slug=slug)
+        
 class BasicFlatBlockWrapper(object):
     def prepare(self, parser, token):
         """
@@ -111,7 +164,7 @@ class PlainFlatBlockWrapper(BasicFlatBlockWrapper):
 
 do_get_flatblock = BasicFlatBlockWrapper()
 do_plain_flatblock = PlainFlatBlockWrapper()
-    
+        
 class FlatBlockNode(template.Node):
     def __init__(self, slug, is_variable, cache_time=0, with_template=True,
             template_name=None, tpl_is_variable=False):
@@ -126,7 +179,7 @@ class FlatBlockNode(template.Node):
         self.is_variable = is_variable
         self.cache_time = cache_time
         self.with_template = with_template
-    
+        
     def render(self, context):
         if self.is_variable:
             real_slug = template.Variable(self.slug).resolve(context)

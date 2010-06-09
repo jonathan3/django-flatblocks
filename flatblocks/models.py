@@ -52,7 +52,7 @@ class FlatBlock(models.Model):
         super(FlatBlock, self).save(*args, **kwargs)
         # Now also invalidate the cache used in the templatetag
         cache.delete('%s%s' % (CACHE_PREFIX, self.slug, ))
-
+    
     class Meta:
         verbose_name = _('Flat block')
         verbose_name_plural = _('Flat blocks')
@@ -61,7 +61,8 @@ class BlockSetItem(models.Model):
     """
     This is a model specifically for keeping items in blocksets in
     order. It's just not quite enough to just include FlatBlock as
-    a ManyToManyField in the BlockSet model.
+    a ManyToManyField in the BlockSet model, as we want to let the
+    user set the position in which each block appears too.
     """
     position = models.PositiveIntegerField()
     blockset = models.ForeignKey(BlockSet, verbose_name=_("Associated block set"))
